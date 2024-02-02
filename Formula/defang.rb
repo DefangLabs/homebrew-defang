@@ -1,4 +1,4 @@
-class DefangCli < Formula
+class Defang < Formula
   desc "Command-line interface for the Defang Opinionated Platform"
   homepage "https://defang.io"
   url "https://github.com/defang-io/defang/archive/refs/tags/v0.4.61.tar.gz"
