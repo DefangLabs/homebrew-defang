@@ -2,9 +2,9 @@
 
 ## How do I install these formulae?
 
-`brew install defang-io/defang/<formula>`
+`brew install defang-io/defang/defang`
 
-Or `brew tap defang-io/defang` and then `brew install <formula>`.
+Or `brew tap defang-io/defang` and then `brew install defang`.
 
 ## Documentation
 
