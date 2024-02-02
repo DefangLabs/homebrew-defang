@@ -8,7 +8,9 @@ class Defang < Formula
   depends_on "go" => :build
 
   def install
-    system "go", "build", *std_go_args(ldflags: "-s -w")
+    Dir.chdir("src") do
+      system "go", "build", *std_go_args(ldflags: "-s -w")
+    end
   end
 
   test do
