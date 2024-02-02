@@ -2,9 +2,9 @@
 
 ## How do I install these formulae?
 
-`brew install defang-io/defang/defang`
+`brew install defang-io/defang/defang-cli`
 
-Or `brew tap defang-io/defang` and then `brew install defang`.
+Or `brew tap defang-io/defang` and then `brew install defang-cli`.
 
 ## Documentation
 
