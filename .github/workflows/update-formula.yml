@@ -1,5 +1,8 @@
 name: Update Homebrew Formula
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   repository_dispatch:
@@ -7,7 +10,7 @@ on:
 
 jobs:
   update-formula:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout Homebrew repository
       uses: actions/checkout@v4
@@ -17,42 +20,41 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          const repo = {
-            owner: 'defang-io',
-            repo: 'defang',
-          };
-          const response = await github.rest.repos.getLatestRelease(repo);
-          console.log("GetLatestRelease Response:", response.data); // Debugging line
+          const { data } = await github.rest.repos.getLatestRelease({
+            owner: process.env.GITHUB_REPOSITORY_OWNER,
+            repo: 'defang'
+            });
           return {
-            tag_name: response.data.tag_name,
-            asset_url: response.data.assets[0].browser_download_url,
+            tag_name: data.tag_name,
+            tarball_url: data.tarball_url
           };
+        result-encoding: json
 
-    - name: Download the latest release asset
-      run: curl -L ${{ steps.latest-release.outputs.asset_url }} -o latest-release.tar.gz
+    - name: Set environment variables for latest release
+      run: |
+        # [WORKAROUND] Even though the github-script output is supposed to be JSON, looks like we are getting a string
+        echo "TAG_NAME=$(echo '${{ steps.latest-release.outputs.result }}' | jq -r '.tag_name')" >> $GITHUB_ENV
+        echo "TARBALL_URL=$(echo '${{ steps.latest-release.outputs.result }}' | jq -r '.tarball_url')" >> $GITHUB_ENV
 
     - name: Compute SHA256 checksum
-      id: sha256
       run: |
-        SHA=$(shasum -a 256 latest-release.tar.gz | awk '{print $1}')
-        echo "SHA256: $SHA"  # Debugging line
-        echo "::set-output name=sha::$SHA"
+        SHA256=$(curl -L $TARBALL_URL | sha256sum | awk '{print $1}')
+        echo "SHA256=$SHA256" >> $GITHUB_ENV
 
     - name: Update Homebrew formula
       run: |
         formula_path="Formula/defang.rb"
-        sed -i '' "s|url .*|url \"${{ steps.latest-release.outputs.asset_url }}\"|g" $formula_path
-        sed -i '' "s|sha256 .*|sha256 \"${{ steps.sha256.outputs.sha }}\"|g" $formula_path
-
-    - name: Print updated Homebrew formula content
-      run: cat Formula/defang.rb
-      shell: bash
+        sed -i.bak "s|url \".*|url \"$TARBALL_URL\"|g" $formula_path
+        sed -i.bak "s|sha256 \".*|sha256 \"$SHA256\"|g" $formula_path
 
     - name: Commit and push changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        # git commit -am "Update Homebrew formula to version ${{ steps.latest-release.outputs.tag_name }}"
-        # git push
-
-    # Add any other steps you might need, like creating a pull request instead of pushing directly
+        git add Formula/defang.rb
+        git commit -m "Update Homebrew formula to version $TAG_NAME"
+        git push
+        git tag "$TAG_NAME"
+        git push --tags
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
