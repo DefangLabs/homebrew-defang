@@ -1,0 +1,58 @@
+name: Update Homebrew Formula
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [update-homebrew-formula]
+
+jobs:
+  update-formula:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout Homebrew repository
+      uses: actions/checkout@v4
+
+    - name: Fetch the latest release from CLI repository
+      id: latest-release
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const repo = {
+            owner: 'defang-io',
+            repo: 'defang',
+          };
+          const response = await github.rest.repos.getLatestRelease(repo);
+          console.log("GetLatestRelease Response:", response.data); // Debugging line
+          return {
+            tag_name: response.data.tag_name,
+            asset_url: response.data.assets[0].browser_download_url,
+          };
+
+    - name: Download the latest release asset
+      run: curl -L ${{ steps.latest-release.outputs.asset_url }} -o latest-release.tar.gz
+
+    - name: Compute SHA256 checksum
+      id: sha256
+      run: |
+        SHA=$(shasum -a 256 latest-release.tar.gz | awk '{print $1}')
+        echo "SHA256: $SHA"  # Debugging line
+        echo "::set-output name=sha::$SHA"
+
+    - name: Update Homebrew formula
+      run: |
+        formula_path="Formula/defang.rb"
+        sed -i '' "s|url .*|url \"${{ steps.latest-release.outputs.asset_url }}\"|g" $formula_path
+        sed -i '' "s|sha256 .*|sha256 \"${{ steps.sha256.outputs.sha }}\"|g" $formula_path
+
+    - name: Print updated Homebrew formula content
+      run: cat Formula/defang.rb
+      shell: bash
+
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        # git commit -am "Update Homebrew formula to version ${{ steps.latest-release.outputs.tag_name }}"
+        # git push
+
+    # Add any other steps you might need, like creating a pull request instead of pushing directly
