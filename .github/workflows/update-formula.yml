@@ -45,7 +45,7 @@ jobs:
         sed -i '' "s|sha256 .*|sha256 \"${{ steps.sha256.outputs.sha }}\"|g" $formula_path
 
     - name: Print updated Homebrew formula content
-      run: cat Formula/your-formula.rb
+      run: cat Formula/defang.rb
       shell: bash
 
     - name: Commit and push changes
