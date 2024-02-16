@@ -1,11 +1,17 @@
-# Defang-CLI
+# Defang CLI
 This repo has the Brew formula for `defang`, the command-line interface for the Defang Opinionated Platform.
 
 ## How do I install these formulae?
+In one go:
+```sh
+brew install defang-io/defang/defang
+```
 
-`brew install defang-io/defang/defang`
-
-Or `brew tap defang-io/defang` and then `brew install defang`.
+Or: 
+```sh
+brew tap defang-io/defang
+brew install defang
+```
 
 ## Documentation
 
