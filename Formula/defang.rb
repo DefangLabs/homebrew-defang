@@ -13,9 +13,15 @@ class Defang < Formula
     Dir.chdir "src" do
       system "go", "build", "-o", bin/"defang", *std_go_args(ldflags: "#{version_info} -s -w"), "./cmd/cli"
     end
+
+    # Install shell completions (using the binary we just built to generate them)
+    system "./src/bin/completions.sh", bin/"defang"
+    bash_completion.install "defang.bash" => "defang"
+    zsh_completion.install "defang.fish" => "_defang"
+    fish_completion.install "defang.zsh"
   end
 
   test do
-    system "false"
+    system bin/"defang", "version"
   end
 end
