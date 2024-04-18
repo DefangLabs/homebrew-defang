@@ -33,8 +33,10 @@ jobs:
     - name: Set environment variables for latest release
       run: |
         # [WORKAROUND] Even though the github-script output is supposed to be JSON, looks like we are getting a string
-        echo "TAG_NAME=$(echo '${{ steps.latest-release.outputs.result }}' | jq -r '.tag_name')" >> $GITHUB_ENV
-        echo "TARBALL_URL=$(echo '${{ steps.latest-release.outputs.result }}' | jq -r '.tarball_url')" >> $GITHUB_ENV
+        TAG_NAME=$(echo '${{ steps.latest-release.outputs.result }}' | jq -r '.tag_name')
+        echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+        # Fixes FormulaAudit/Urls: Use /archive/ URLs for GitHub tarballs
+        echo "TARBALL_URL=https://github.com/defang-io/defang/archive/refs/tags/$TAG_NAME.tar.gz" >> $GITHUB_ENV
 
     - name: Compute SHA256 checksum
       run: |
