@@ -17,8 +17,8 @@ class Defang < Formula
     # Install shell completions (using the binary we just built to generate them)
     system "./src/bin/completions.sh", bin/"defang"
     bash_completion.install "defang.bash" => "defang"
-    zsh_completion.install "defang.fish" => "_defang"
-    fish_completion.install "defang.zsh"
+    zsh_completion.install "defang.zsh" => "_defang"
+    fish_completion.install "defang.fish"
   end
 
   test do
