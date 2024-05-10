@@ -22,6 +22,6 @@ class Defang < Formula
   end
 
   test do
-    system bin/"defang", "version"
+    system bin/"defang", "--version"
   end
 end
