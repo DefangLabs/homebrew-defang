@@ -11,7 +11,7 @@ class Defang < Formula
   def install
     version_info = "-X main.version=#{version}"
     Dir.chdir "src" do
-      system "go", "build", "-o", bin/"defang", *std_go_args(ldflags: "#{version_info} -s -w"), "./cmd/cli"
+      system "go", "build", "-o", bin/"defang", "-buildvcs=false", *std_go_args(ldflags: "#{version_info} -s -w"), "./cmd/cli"
     end
 
     # Install shell completions (using the binary we just built to generate them)
