@@ -4,17 +4,17 @@ This repo has the Brew formula for `defang`, the command-line interface for the 
 ## How do I install these formulae?
 In one go:
 ```sh
-brew install defang-io/defang/defang
+brew install DefangLabs/defang/defang
 ```
 
-Or: 
+Or:
 ```sh
-brew tap defang-io/defang
+brew tap DefangLabs/defang
 brew install defang
 ```
 
 ## Documentation
 
-For help with the Defang CLI, check [the main defang repository](https://github.com/defang-io/defang).
+For help with the Defang CLI, check [the main defang repository](https://github.com/DefangLabs/defang).
 
 For help with Homebrew, do `brew help`, `man brew` or check [Homebrew's documentation](https://docs.brew.sh).
