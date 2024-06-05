@@ -13,7 +13,8 @@ jobs:
     steps:
       - name: Only deploy on repository_dispatch if version starts with 'v'
         run: |
-          echo "Event name: ${{ github.event.client_payload }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "Type: ${{ github.event.client_payload.type }}"
           if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.client_payload.type }}" == "test-update-homebrew-formula" ]]; then
             echo "Version: ${{ github.event.client_payload.version }}"
             if [[ "${{ github.event.client_payload.version }}" != v* ]]; then
