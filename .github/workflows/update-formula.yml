@@ -51,7 +51,7 @@ jobs:
         TAG_NAME=$(echo '${{ steps.latest-release.outputs.result }}' | jq -r '.tag_name')
         echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
         # Fixes FormulaAudit/Urls: Use /archive/ URLs for GitHub tarballs
-        echo "TARBALL_URL=https://github.com/DefangLabs/defang/archive/refs/tags/$TAG_NAME.tar.gz" >> $GITHUB_ENV
+        echo "TARBALL_URL=https://s.defang.io/defang_${TAG_NAME:1}_source.tar.gz?x-defang-source=homebrew" >> $GITHUB_ENV
 
     - name: Compute SHA256 checksum
       run: |
