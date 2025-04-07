@@ -75,3 +75,14 @@ jobs:
         git push --tags
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Notify Slack of Action Failures
+      uses: ravsamhq/notify-slack-action@2.5.0
+      if: ${{ always() && github.ref_name == 'main' }}
+      with:
+        status: ${{ job.status }}
+        notify_when: "failure"
+        notification_title: "{workflow} is failing"
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_NOTIFIER_WEBHOOK_URL }}
+
