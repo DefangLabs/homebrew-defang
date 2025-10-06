@@ -1,8 +1,8 @@
 class Defang < Formula
   desc "Command-line interface for the Defang Opinionated Platform"
   homepage "https://defang.io"
-  url "https://github.com/DefangLabs/defang/archive/refs/tags/v2.1.9.tar.gz"
-  sha256 "82bb41fab91e1ca869bdef9c52ae8fdd5f11460e7f714384b106983d1b287d67"
+  url "https://github.com/DefangLabs/defang/archive/refs/tags/v2.1.10.tar.gz"
+  sha256 "70a8be0e65cd820f977b28556820ff7a7261415b938c314066f4a6f745955eae"
   license "MIT"
   head "https://github.com/DefangLabs/defang.git", branch: "main"
 
