@@ -6,12 +6,12 @@ class Defang < Formula
   license "MIT"
   head "https://github.com/DefangLabs/defang.git", branch: "main"
 
-  depends_on "go" => :build
+  depends_on "go@1.24" => :build
 
   def install
     version_info = "-X main.version=#{version}"
     Dir.chdir "src" do
-      system "go", "build", "-o", bin/"defang", "-buildvcs=false", *std_go_args(ldflags: "#{version_info} -s -w"), "./cmd/cli"
+      system "go", "build", *std_go_args(ldflags: "#{version_info} -s -w"), "./cmd/cli"
     end
 
     # Install shell completions (using the binary we just built to generate them)
