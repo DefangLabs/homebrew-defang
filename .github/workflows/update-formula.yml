@@ -23,7 +23,6 @@ jobs:
         echo "Type: $EVENT_ACTION"
         echo "Version: $VERSION"
         if [[ "$EVENT_NAME" == "repository_dispatch" && "$EVENT_ACTION" == "update-homebrew-formula" ]]; then
-          echo "Version: $VERSION"
           if [[ "$VERSION" != v* ]]; then
             echo "Version does not start with 'v'. Stopping workflow."
             exit 1
@@ -74,7 +73,7 @@ jobs:
         fi
         GO_VERSION=$(echo "$GO_FULL" | cut -d. -f1,2)
         echo "Detected Go version in go.mod: $GO_FULL -> go@$GO_VERSION"
-        echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
+        echo "GO_VERSION=$GO_VERSION" >> "$GITHUB_ENV"
 
     - name: Update Homebrew formula
       run: |
