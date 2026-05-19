@@ -28,11 +28,11 @@ jobs:
       shell: bash
 
     - name: Checkout Homebrew repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
     - name: Fetch the latest release from CLI repository
       id: latest-release
-      uses: actions/github-script@v7
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
       with:
         script: |
           const { data } = await github.rest.repos.getLatestRelease({
@@ -58,11 +58,24 @@ jobs:
         SHA256=$(curl -L $TARBALL_URL | sha256sum | awk '{print $1}')
         echo "SHA256=$SHA256" >> $GITHUB_ENV
 
+    - name: Determine required Go version from go.mod
+      run: |
+        GO_MOD_URL="https://raw.githubusercontent.com/DefangLabs/defang/$TAG_NAME/src/go.mod"
+        GO_FULL=$(curl -fsSL "$GO_MOD_URL" | awk '/^go [0-9]/{print $2; exit}')
+        if [ -z "$GO_FULL" ]; then
+          echo "Failed to parse Go version from $GO_MOD_URL" >&2
+          exit 1
+        fi
+        GO_VERSION=$(echo "$GO_FULL" | cut -d. -f1,2)
+        echo "Detected Go version in go.mod: $GO_FULL -> go@$GO_VERSION"
+        echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
+
     - name: Update Homebrew formula
       run: |
         formula_path="Formula/defang.rb"
         sed -i.bak "s|url \".*|url \"$TARBALL_URL\"|g" $formula_path
         sed -i.bak "s|sha256 \".*|sha256 \"$SHA256\"|g" $formula_path
+        sed -i.bak "s|depends_on \"go@[^\"]*\" => :build|depends_on \"go@$GO_VERSION\" => :build|g" $formula_path
 
     - name: Commit and push changes
       run: |
@@ -78,7 +91,7 @@ jobs:
 
     - name: Notify Slack of Action Failures
       if: ${{ failure() && github.ref_name == 'main' }}
-      uses: rtCamp/action-slack-notify@v2
+      uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2.3.3
       env:
         SLACK_TITLE: Defang Homebrew update workflow failed
         MSG_MINIMAL: actions url
