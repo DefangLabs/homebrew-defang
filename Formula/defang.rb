@@ -6,7 +6,7 @@ class Defang < Formula
   license "MIT"
   head "https://github.com/DefangLabs/defang.git", branch: "main"
 
-  depends_on "go@1.24" => :build
+  depends_on "go@1.25" => :build
 
   def install
     version_info = "-X main.version=#{version}"
