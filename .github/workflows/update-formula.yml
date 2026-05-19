@@ -14,13 +14,16 @@ jobs:
     steps:
 
     - name: Only deploy on repository_dispatch if version starts with 'v'
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        EVENT_ACTION: ${{ github.event.action }}
+        VERSION: ${{ github.event.client_payload.version }}
       run: |
-        echo "Event name: ${{ github.event_name }}"
-        echo "Type: ${{ github.event.action }}"
-        echo "Version: ${{ github.event.client_payload.version }}"
-        if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "update-homebrew-formula" ]]; then
-          echo "Version: ${{ github.event.client_payload.version }}"
-          if [[ "${{ github.event.client_payload.version }}" != v* ]]; then
+        echo "Event name: $EVENT_NAME"
+        echo "Type: $EVENT_ACTION"
+        echo "Version: $VERSION"
+        if [[ "$EVENT_NAME" == "repository_dispatch" && "$EVENT_ACTION" == "update-homebrew-formula" ]]; then
+          if [[ "$VERSION" != v* ]]; then
             echo "Version does not start with 'v'. Stopping workflow."
             exit 1
           fi
@@ -46,17 +49,19 @@ jobs:
         result-encoding: json
 
     - name: Set environment variables for latest release
+      env:
+        LATEST_RELEASE: ${{ steps.latest-release.outputs.result }}
       run: |
         # [WORKAROUND] Even though the github-script output is supposed to be JSON, looks like we are getting a string
-        TAG_NAME=$(echo '${{ steps.latest-release.outputs.result }}' | jq -r '.tag_name')
-        echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+        TAG_NAME=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+        echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
         # Fixes FormulaAudit/Urls: Use /archive/ URLs for GitHub tarballs
-        echo "TARBALL_URL=https://github.com/DefangLabs/defang/archive/refs/tags/$TAG_NAME.tar.gz" >> $GITHUB_ENV
+        echo "TARBALL_URL=https://github.com/DefangLabs/defang/archive/refs/tags/$TAG_NAME.tar.gz" >> "$GITHUB_ENV"
 
     - name: Compute SHA256 checksum
       run: |
-        SHA256=$(curl -L $TARBALL_URL | sha256sum | awk '{print $1}')
-        echo "SHA256=$SHA256" >> $GITHUB_ENV
+        SHA256=$(curl -L "$TARBALL_URL" | sha256sum | awk '{print $1}')
+        echo "SHA256=$SHA256" >> "$GITHUB_ENV"
 
     - name: Determine required Go version from go.mod
       run: |
@@ -68,7 +73,7 @@ jobs:
         fi
         GO_VERSION=$(echo "$GO_FULL" | cut -d. -f1,2)
         echo "Detected Go version in go.mod: $GO_FULL -> go@$GO_VERSION"
-        echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
+        echo "GO_VERSION=$GO_VERSION" >> "$GITHUB_ENV"
 
     - name: Update Homebrew formula
       run: |
