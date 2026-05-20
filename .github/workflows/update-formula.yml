@@ -60,7 +60,11 @@ jobs:
 
     - name: Compute SHA256 checksum
       run: |
-        SHA256=$(curl -L "$TARBALL_URL" | sha256sum | awk '{print $1}')
+        SHA256=$(curl -fsSL "$TARBALL_URL" | sha256sum | awk '{print $1}')
+        if [ -z "$SHA256" ]; then
+          echo "Failed to compute SHA256 for $TARBALL_URL" >&2
+          exit 1
+        fi
         echo "SHA256=$SHA256" >> "$GITHUB_ENV"
 
     - name: Determine required Go version from go.mod
