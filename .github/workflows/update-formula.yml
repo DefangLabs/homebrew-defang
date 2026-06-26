@@ -12,74 +12,103 @@ jobs:
   update-formula:
     runs-on: ubuntu-latest
     steps:
+      - name: Only deploy on repository_dispatch if version starts with 'v'
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          echo "Event name: $EVENT_NAME"
+          echo "Type: $EVENT_ACTION"
+          echo "Version: $VERSION"
+          if [[ "$EVENT_NAME" == "repository_dispatch" && "$EVENT_ACTION" == "update-homebrew-formula" ]]; then
+            if [[ "$VERSION" != v* ]]; then
+              echo "Version does not start with 'v'. Stopping workflow."
+              exit 1
+            fi
+          fi
+        shell: bash
 
-    - name: Only deploy on repository_dispatch if version starts with 'v'
-      run: |
-        echo "Event name: ${{ github.event_name }}"
-        echo "Type: ${{ github.event.action }}"
-        echo "Version: ${{ github.event.client_payload.version }}"
-        if [[ "${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.action }}" == "update-homebrew-formula" ]]; then
-          echo "Version: ${{ github.event.client_payload.version }}"
-          if [[ "${{ github.event.client_payload.version }}" != v* ]]; then
-            echo "Version does not start with 'v'. Stopping workflow."
+      - name: Checkout Homebrew repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Fetch the latest release from CLI repository
+        id: latest-release
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const { data } = await github.rest.repos.getLatestRelease({
+              owner: process.env.GITHUB_REPOSITORY_OWNER,
+              repo: 'defang'
+              });
+            return {
+              tag_name: data.tag_name,
+              tarball_url: data.tarball_url
+            };
+          result-encoding: json
+
+      - name: Set environment variables for latest release
+        env:
+          LATEST_RELEASE: ${{ steps.latest-release.outputs.result }}
+        run: |
+          # [WORKAROUND] Even though the github-script output is supposed to be JSON, looks like we are getting a string
+          TAG_NAME=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
+          # Fixes FormulaAudit/Urls: Use /archive/ URLs for GitHub tarballs
+          echo "TARBALL_URL=https://github.com/DefangLabs/defang/archive/refs/tags/$TAG_NAME.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Compute SHA256 checksum
+        run: |
+          set -o pipefail
+          SHA256=$(curl -fsSL "$TARBALL_URL" | sha256sum | awk '{print $1}')
+          if [ -z "$SHA256" ]; then
+            echo "Failed to compute SHA256 for $TARBALL_URL" >&2
             exit 1
           fi
-        fi
-      shell: bash
+          echo "SHA256=$SHA256" >> "$GITHUB_ENV"
 
-    - name: Checkout Homebrew repository
-      uses: actions/checkout@v4
+      - name: Determine required Go version from go.mod
+        run: |
+          set -o pipefail
+          GO_MOD_URL="https://raw.githubusercontent.com/DefangLabs/defang/$TAG_NAME/src/go.mod"
+          GO_FULL=$(curl -fsSL "$GO_MOD_URL" | awk '/^go [0-9]/{print $2; exit}')
+          if [ -z "$GO_FULL" ]; then
+            echo "Failed to parse Go version from $GO_MOD_URL" >&2
+            exit 1
+          fi
+          GO_VERSION=$(echo "$GO_FULL" | cut -d. -f1,2)
+          echo "Detected Go version in go.mod: $GO_FULL -> go@$GO_VERSION"
+          echo "GO_VERSION=$GO_VERSION" >> "$GITHUB_ENV"
 
-    - name: Fetch the latest release from CLI repository
-      id: latest-release
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const { data } = await github.rest.repos.getLatestRelease({
-            owner: process.env.GITHUB_REPOSITORY_OWNER,
-            repo: 'defang'
-            });
-          return {
-            tag_name: data.tag_name,
-            tarball_url: data.tarball_url
-          };
-        result-encoding: json
+      - name: Update Homebrew formula
+        run: |
+          formula_path="Formula/defang.rb"
+          sed -i.bak "s|url \".*|url \"$TARBALL_URL\"|g" $formula_path
+          sed -i.bak "s|sha256 \".*|sha256 \"$SHA256\"|g" $formula_path
+          sed -i.bak "s|depends_on \"go@[^\"]*\" => :build|depends_on \"go@$GO_VERSION\" => :build|g" $formula_path
 
-    - name: Set environment variables for latest release
-      run: |
-        # [WORKAROUND] Even though the github-script output is supposed to be JSON, looks like we are getting a string
-        TAG_NAME=$(echo '${{ steps.latest-release.outputs.result }}' | jq -r '.tag_name')
-        echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-        # Fixes FormulaAudit/Urls: Use /archive/ URLs for GitHub tarballs
-        echo "TARBALL_URL=https://github.com/DefangLabs/defang/archive/refs/tags/$TAG_NAME.tar.gz" >> $GITHUB_ENV
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add Formula/defang.rb
+          if git diff --cached --quiet; then
+            echo "Formula already up to date"
+            exit 0
+          fi
+          git commit -m "Update Homebrew formula to version $TAG_NAME"
+          git push
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+            git tag "$TAG_NAME"
+            git push origin "refs/tags/$TAG_NAME"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Compute SHA256 checksum
-      run: |
-        SHA256=$(curl -L $TARBALL_URL | sha256sum | awk '{print $1}')
-        echo "SHA256=$SHA256" >> $GITHUB_ENV
-
-    - name: Update Homebrew formula
-      run: |
-        formula_path="Formula/defang.rb"
-        sed -i.bak "s|url \".*|url \"$TARBALL_URL\"|g" $formula_path
-        sed -i.bak "s|sha256 \".*|sha256 \"$SHA256\"|g" $formula_path
-
-    - name: Commit and push changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add Formula/defang.rb
-        git commit -m "Update Homebrew formula to version $TAG_NAME"
-        git push
-        git tag "$TAG_NAME"
-        git push --tags
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Notify Slack of Action Failures
-      if: ${{ failure() && github.ref_name == 'main' }}
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_TITLE: Defang Homebrew update workflow failed
-        MSG_MINIMAL: actions url
-        SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER_WEBHOOK_URL }}
+      - name: Notify Slack of Action Failures
+        if: ${{ failure() && github.ref_name == 'main' }}
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2.3.3
+        env:
+          SLACK_TITLE: Defang Homebrew update workflow failed
+          MSG_MINIMAL: actions url
+          SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER_WEBHOOK_URL }}
