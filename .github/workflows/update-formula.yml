@@ -94,10 +94,10 @@ jobs:
           git add Formula/defang.rb
           if git diff --cached --quiet; then
             echo "Formula already up to date"
-            exit 0
+          else
+            git commit -m "Update Homebrew formula to version $TAG_NAME"
+            git push
           fi
-          git commit -m "Update Homebrew formula to version $TAG_NAME"
-          git push
           if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
             git tag "$TAG_NAME"
             git push origin "refs/tags/$TAG_NAME"
