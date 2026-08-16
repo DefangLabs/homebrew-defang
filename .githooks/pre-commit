@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# List of files staged for commit.
+changed=$(git diff --cached --name-only --diff-filter=ACMR)
+
+# run_if_changed <path-regex> <cmd> [args...]
+#   Runs `cmd` (extended-regex match against the staged file list).
+#   Aborts the commit if `cmd` is not on PATH.
+run_if_changed() {
+  local regex=$1
+  shift
+  grep -qE "$regex" <<<"$changed" || return 0
+  if ! command -v "$1" >/dev/null; then
+    echo "pre-commit: '$1' not on PATH. Install it (or run 'direnv allow' if using nix)." >&2
+    exit 1
+  fi
+  "$@"
+}
+
+# --- Checks ---------------------------------------------------------------
+# Add a new line per tool: trigger regex + command.
+
+run_if_changed '^\.github/(workflows|actions)/' actionlint
