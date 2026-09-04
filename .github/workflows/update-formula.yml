@@ -69,9 +69,9 @@ jobs:
 
       - name: Determine required Go version from go.mod
         run: |
-          set -o pipefail
           GO_MOD_URL="https://raw.githubusercontent.com/DefangLabs/defang/$TAG_NAME/src/go.mod"
-          GO_FULL=$(curl -fsSL "$GO_MOD_URL" | awk '/^go [0-9]/{print $2; exit}')
+          GO_MOD=$(curl -fsSL "$GO_MOD_URL")
+          GO_FULL=$(awk '/^go [0-9]/{print $2; exit}' <<< "$GO_MOD")
           if [ -z "$GO_FULL" ]; then
             echo "Failed to parse Go version from $GO_MOD_URL" >&2
             exit 1
