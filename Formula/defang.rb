@@ -1,12 +1,12 @@
 class Defang < Formula
   desc "Command-line interface for the Defang Opinionated Platform"
   homepage "https://defang.io"
-  url "https://github.com/DefangLabs/defang/archive/refs/tags/v3.15.7.tar.gz"
-  sha256 "7eea1a133f3fb64f9cf831fd8bc8db3b79d3f392449c57e6e47b82687cb23dfb"
+  url "https://github.com/DefangLabs/defang/archive/refs/tags/v3.15.8.tar.gz"
+  sha256 "02e7a18de96f28b62b52bd2194692ce2b88cf9e9b798655d8b3ba7b2c1d4d092"
   license "MIT"
   head "https://github.com/DefangLabs/defang.git", branch: "main"
 
-  depends_on "go@1.25" => :build
+  depends_on "go@1.26" => :build
 
   def install
     version_info = "-X main.version=#{version}"
